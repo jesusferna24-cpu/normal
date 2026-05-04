@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Sistema de Votación - Gobierno Estudiantil</title>
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- PapaParse para parsear CSV/Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -18,13 +22,11 @@
             min-height: 100vh;
         }
 
-        /* Contenedor principal */
         .app-container {
             max-width: 1400px;
             margin: 0 auto;
         }
 
-        /* Encabezado institucional */
         .school-header {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
@@ -60,11 +62,6 @@
             margin-bottom: 5px;
         }
 
-        .school-info p {
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-
         .mode-buttons {
             display: flex;
             gap: 15px;
@@ -79,7 +76,6 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
-            backdrop-filter: blur(4px);
         }
 
         .mode-btn.active {
@@ -87,14 +83,12 @@
             color: #1e3c72;
         }
 
-        /* Tarjetas generales */
         .card {
             background: white;
             border-radius: 28px;
             padding: 25px;
             margin-bottom: 30px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            transition: all 0.2s;
         }
 
         .admin-panel {
@@ -168,17 +162,12 @@
             color: #2c3e66;
         }
 
-        input, file-input {
+        input, select, file-input {
             width: 100%;
             padding: 10px 12px;
             border-radius: 40px;
             border: 1px solid #ccc;
             outline: none;
-        }
-
-        button {
-            cursor: pointer;
-            transition: 0.2s;
         }
 
         .candidate-list, .student-list {
@@ -192,7 +181,7 @@
             background: #fef9e6;
             border-radius: 20px;
             padding: 12px;
-            width: 180px;
+            width: 210px;
             text-align: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
@@ -205,7 +194,6 @@
             margin: 5px auto;
         }
 
-        /* Estilos para la papeleta (votación) */
         .ballot-container {
             display: flex;
             flex-wrap: wrap;
@@ -217,7 +205,7 @@
         .candidate-card-vote {
             background: white;
             border-radius: 28px;
-            width: 200px;
+            width: 220px;
             padding: 15px;
             cursor: pointer;
             text-align: center;
@@ -230,7 +218,6 @@
         .candidate-card-vote.selected {
             border: 3px solid #ff9800;
             background: #fff8e7;
-            transform: scale(1.02);
         }
 
         .photo-wrapper {
@@ -276,7 +263,13 @@
         .candidate-name {
             font-weight: bold;
             margin-top: 10px;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+        }
+
+        .candidate-corriente {
+            font-size: 0.8rem;
+            color: #e67e22;
+            font-style: italic;
         }
 
         .vote-btn {
@@ -306,10 +299,6 @@
             margin: 15px 0;
         }
 
-        hr {
-            margin: 20px 0;
-        }
-
         .results-summary {
             background: #e9ecef;
             padding: 15px;
@@ -317,31 +306,26 @@
             margin-top: 20px;
         }
 
+        .chart-container {
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
         @media (max-width: 800px) {
-            .school-header {
-                flex-direction: column;
-                text-align: center;
-            }
-            .candidate-card-vote {
-                width: 160px;
-            }
+            .school-header { flex-direction: column; text-align: center; }
+            .candidate-card-vote { width: 180px; }
         }
-        footer {
-            text-align: center;
-            margin-top: 30px;
-            color: gray;
-        }
+        footer { text-align: center; margin-top: 30px; color: gray; }
     </style>
 </head>
 <body>
 <div class="app-container">
-    <!-- Header dinámico (nombre y logo) -->
     <div class="school-header" id="schoolHeader">
         <div class="logo-area">
             <img id="schoolLogoImg" class="school-logo-img" src="https://via.placeholder.com/70?text=Logo" alt="Logo">
             <div class="school-info">
                 <h2 id="schoolNameDisplay">Colegio Ejemplo</h2>
-                <p>Gobierno Estudiantil - Elecciones 2026</p>
+                <p>Gobierno Estudiantil - Elecciones 2025</p>
             </div>
         </div>
         <div class="mode-buttons">
@@ -350,11 +334,10 @@
         </div>
     </div>
 
-    <!-- Panel de Votación Estudiantil -->
+    <!-- Panel Votación -->
     <div id="voterSection" class="card voting-panel">
         <h3 class="section-title">📋 Papeleta Electrónica</h3>
         <div id="voterContent">
-            <!-- Aquí se carga login y papeleta -->
             <div class="student-login-area">
                 <h4>🔐 Identificación del Estudiante</h4>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -364,52 +347,46 @@
                 </div>
                 <div id="studentAuthMessage"></div>
             </div>
-            <div id="ballotArea">
-                <!-- Aquí se renderizará la papeleta cuando el estudiante esté autenticado y no haya votado -->
-            </div>
+            <div id="ballotArea"></div>
             <div id="voteResultMessage"></div>
         </div>
     </div>
 
-    <!-- Panel de Administración (solo visible tras autenticación admin) -->
+    <!-- Panel Administración -->
     <div id="adminSection" style="display: none;" class="card admin-panel">
         <h3 class="section-title">⚙️ Panel de Administración</h3>
-        <div id="adminAuthArea">
-            <!-- si no autenticado muestra login admin -->
-        </div>
+        <div id="adminAuthArea"></div>
         <div id="adminConfigArea" style="display:none;">
             <div class="admin-buttons">
                 <button id="showSchoolConfigBtn" class="admin-btn">🏫 Configurar Colegio</button>
                 <button id="showCandidatesConfigBtn" class="admin-btn">👥 Gestionar Candidatos</button>
                 <button id="showStudentsConfigBtn" class="admin-btn">📚 Base de Estudiantes</button>
                 <button id="resetVotesBtn" class="admin-btn danger">🗳️ Reiniciar Votaciones</button>
-                <button id="viewResultsBtn" class="admin-btn warning">📊 Ver Resultados</button>
+                <button id="viewResultsBtn" class="admin-btn warning">📊 Ver Resultados (Gráficos)</button>
                 <button id="logoutAdminBtn" class="admin-btn secondary">🚪 Salir Admin</button>
             </div>
-            <div id="adminDynamicPanel">
-                <!-- contenido dinámico: formularios, listas -->
-            </div>
+            <div id="adminDynamicPanel"></div>
         </div>
     </div>
-    <footer>Sistema de Voto Estudiantil | Hecho por: Jesus Fernández</footer>
+    <footer>Sistema de Voto Estudiantil | Administrador: admin2025</footer>
 </div>
 
 <script>
-    // ---------- MODELO DE DATOS Y LOCALSTORAGE ----------
+    // ---------- MODELO DE DATOS ----------
     let db = {
         schoolName: "Colegio San Alberto Magno",
-        schoolLogo: "", // base64
-        candidates: [], // { id, name, photoDataURL }
-        students: [],   // { id, name, grade }
-        votes: {}       // { studentId: candidateId }
+        schoolLogo: "",
+        candidates: [],   // { id, name, corriente, photoDataURL }
+        students: [],     // { id, name, grade }
+        votes: {}         // { studentId: candidateId }
     };
 
-    // Variables de sesión
     let adminAuthenticated = false;
-    let currentStudent = null;      // { id, name, grade, hasVoted: bool }
+    let currentStudent = null;
     let selectedCandidateId = null;
+    let resultsChart = null; // para gráfico
 
-    // Cargar o inicializar datos en localStorage
+    // Cargar/Guardar datos
     function loadData() {
         const stored = localStorage.getItem("votingSystemData");
         if(stored) {
@@ -420,14 +397,16 @@
                 if(!db.students) db.students = [];
                 if(!db.votes) db.votes = {};
                 if(!db.schoolName) db.schoolName = "Colegio San Alberto";
-            } catch(e) { console.warn(e); initDefaultData();}
+                // Asegurar campo corriente en candidatos antiguos
+                db.candidates.forEach(c => { if(!c.corriente) c.corriente = "Sin corriente"; });
+            } catch(e) { initDefaultData(); }
         } else {
             initDefaultData();
         }
-        // Asegurar que cada candidato tenga photoDataURL valida o placeholder
         db.candidates = db.candidates.map(c => ({
             ...c,
-            photoDataURL: c.photoDataURL || "https://randomuser.me/api/portraits/lego/1.jpg"
+            photoDataURL: c.photoDataURL || "https://randomuser.me/api/portraits/lego/1.jpg",
+            corriente: c.corriente || "Independiente"
         }));
         saveData();
     }
@@ -436,9 +415,9 @@
         db.schoolName = "Liceo Innovación Estudiantil";
         db.schoolLogo = "";
         db.candidates = [
-            { id: "c1", name: "Ana María Rojas", photoDataURL: "https://randomuser.me/api/portraits/women/68.jpg" },
-            { id: "c2", name: "Carlos Méndez", photoDataURL: "https://randomuser.me/api/portraits/men/32.jpg" },
-            { id: "c3", name: "Lucía Fernández", photoDataURL: "https://randomuser.me/api/portraits/women/44.jpg" }
+            { id: "c1", name: "Ana María Rojas", corriente: "Movimiento Estudiantil Unido", photoDataURL: "https://randomuser.me/api/portraits/women/68.jpg" },
+            { id: "c2", name: "Carlos Méndez", corriente: "Alianza por el Cambio", photoDataURL: "https://randomuser.me/api/portraits/men/32.jpg" },
+            { id: "c3", name: "Lucía Fernández", corriente: "Futuro Estudiantil", photoDataURL: "https://randomuser.me/api/portraits/women/44.jpg" }
         ];
         db.students = [
             { id: "EST001", name: "Sofía Pérez", grade: "10°" },
@@ -453,15 +432,11 @@
         localStorage.setItem("votingSystemData", JSON.stringify(db));
     }
 
-    // Helper: actualizar UI del header (nombre y logo)
     function updateSchoolHeader() {
         document.getElementById("schoolNameDisplay").innerText = db.schoolName;
         const logoImg = document.getElementById("schoolLogoImg");
-        if(db.schoolLogo && db.schoolLogo.trim() !== "") {
-            logoImg.src = db.schoolLogo;
-        } else {
-            logoImg.src = "https://via.placeholder.com/70?text=IE";
-        }
+        if(db.schoolLogo && db.schoolLogo.trim() !== "") logoImg.src = db.schoolLogo;
+        else logoImg.src = "https://via.placeholder.com/70?text=IE";
     }
 
     // ---------- ADMIN AUTH ----------
@@ -478,25 +453,19 @@
                     <h4>🔒 Acceso restringido a administrador</h4>
                     <input type="password" id="adminPassword" placeholder="Contraseña" style="width:200px; margin-right:10px;">
                     <button id="submitAdminLogin" class="admin-btn">Ingresar</button>
-                    <p style="margin-top:12px; font-size:0.8rem;">* Contraseña por defecto: <strong>admin2025</strong></p>
+                    <p style="margin-top:12px;">Contraseña por defecto: <strong>admin2025</strong></p>
                 </div>
             `;
             document.getElementById("submitAdminLogin")?.addEventListener("click", () => {
-                const pwd = document.getElementById("adminPassword").value;
-                if(pwd === "admin2025") {
+                if(document.getElementById("adminPassword").value === "admin2025") {
                     adminAuthenticated = true;
                     checkAdminAuth();
-                    renderAdminDefaultPanel();
-                } else {
-                    alert("Contraseña incorrecta");
-                }
+                } else alert("Contraseña incorrecta");
             });
         }
     }
 
-    function renderAdminDefaultPanel() {
-        showAdminSection("school");
-    }
+    function renderAdminDefaultPanel() { showAdminSection("school"); }
 
     function showAdminSection(section) {
         const panel = document.getElementById("adminDynamicPanel");
@@ -517,43 +486,28 @@
                     const reader = new FileReader();
                     reader.onload = e => { db.schoolLogo = e.target.result; saveData(); updateSchoolHeader(); renderAdminDefaultPanel(); };
                     reader.readAsDataURL(file);
-                } else {
-                    saveData();
-                    updateSchoolHeader();
-                    renderAdminDefaultPanel();
-                }
-                updateSchoolHeader();
+                } else { saveData(); updateSchoolHeader(); renderAdminDefaultPanel(); }
             });
         }
-        else if(section === "candidates") {
-            renderCandidatesAdmin();
-        }
-        else if(section === "students") {
-            renderStudentsAdmin();
-        }
-        else if(section === "results") {
-            const results = {};
-            db.candidates.forEach(c => { results[c.id] = { name: c.name, votes: 0 }; });
-            Object.values(db.votes).forEach(cid => { if(results[cid]) results[cid].votes++; });
-            let html = `<h4>📈 Resultados actuales</h4><ul style="list-style:none;">`;
-            db.candidates.forEach(c => {
-                html += `<li><strong>${escapeHtml(c.name)}</strong> → ${results[c.id]?.votes || 0} votos</li>`;
-            });
-            html += `</ul><p>Total votos emitidos: ${Object.keys(db.votes).length}</p>`;
-            document.getElementById("adminDynamicPanel").innerHTML = html;
-            return;
-        }
+        else if(section === "candidates") renderCandidatesAdmin();
+        else if(section === "students") renderStudentsAdmin();
+        else if(section === "results") renderResultsWithChart();
     }
 
+    // ---------- CANDIDATOS CON CORRIENTE ----------
     function renderCandidatesAdmin() {
-        let html = `<div class="form-grid"><div class="form-group"><label>Nombre candidato</label><input id="newCandidateName" placeholder="Ej: Laura Torres"></div>
-                    <div class="form-group"><label>Foto (seleccionar)</label><input type="file" id="newCandidatePhoto" accept="image/*"></div>
-                    <div><button id="addCandidateBtn" class="admin-btn">➕ Agregar Candidato</button></div></div>
+        let html = `<div class="form-grid">
+                        <div class="form-group"><label>Nombre candidato</label><input id="newCandidateName" placeholder="Ej: Laura Torres"></div>
+                        <div class="form-group"><label>Corriente / Lista</label><input id="newCorriente" placeholder="Ej: Movimiento Renovador"></div>
+                        <div class="form-group"><label>Foto</label><input type="file" id="newCandidatePhoto" accept="image/*"></div>
+                        <div><button id="addCandidateBtn" class="admin-btn">➕ Agregar Candidato</button></div>
+                    </div>
                     <div class="candidate-list" id="candidateListAdmin">`;
         db.candidates.forEach(c => {
             html += `<div class="candidate-card-admin">
                         <img src="${c.photoDataURL}" class="candidate-img-small" onerror="this.src='https://via.placeholder.com/100'">
                         <strong>${escapeHtml(c.name)}</strong><br>
+                        <span style="font-size:0.8rem; color:#d35400;">${escapeHtml(c.corriente)}</span><br>
                         <button class="admin-btn secondary" data-id="${c.id}" data-name="editCandidate">✏️ Editar</button>
                         <button class="admin-btn danger" data-id="${c.id}" data-name="delCandidate">❌ Eliminar</button>
                     </div>`;
@@ -562,30 +516,27 @@
         document.getElementById("adminDynamicPanel").innerHTML = html;
         document.getElementById("addCandidateBtn")?.addEventListener("click", () => {
             const name = document.getElementById("newCandidateName").value.trim();
+            const corriente = document.getElementById("newCorriente").value.trim();
             if(!name) return alert("Escribe nombre");
             const filePhoto = document.getElementById("newCandidatePhoto").files[0];
-            if(filePhoto) {
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    const newId = "cand_" + Date.now() + "_" + Math.floor(Math.random()*1000);
-                    db.candidates.push({ id: newId, name: name, photoDataURL: ev.target.result });
-                    saveData();
-                    renderCandidatesAdmin();
-                };
-                reader.readAsDataURL(filePhoto);
-            } else {
-                const newId = "cand_" + Date.now();
-                db.candidates.push({ id: newId, name: name, photoDataURL: "https://randomuser.me/api/portraits/lego/2.jpg" });
+            const addCandidate = (photoURL) => {
+                const newId = "cand_" + Date.now() + "_" + Math.floor(Math.random()*1000);
+                db.candidates.push({ id: newId, name: name, corriente: corriente || "Sin corriente", photoDataURL: photoURL });
                 saveData();
                 renderCandidatesAdmin();
-            }
+                if(currentStudent) refreshVoterArea();
+            };
+            if(filePhoto) {
+                const reader = new FileReader();
+                reader.onload = ev => addCandidate(ev.target.result);
+                reader.readAsDataURL(filePhoto);
+            } else addCandidate("https://randomuser.me/api/portraits/lego/2.jpg");
         });
         document.querySelectorAll("[data-name='delCandidate']").forEach(btn => {
-            btn.addEventListener("click", (e) => {
+            btn.addEventListener("click", () => {
                 const id = btn.getAttribute("data-id");
-                if(confirm("Eliminar candidato? Se perderán sus votos asociados.")) {
+                if(confirm("Eliminar candidato? Se pierden sus votos.")) {
                     db.candidates = db.candidates.filter(c => c.id !== id);
-                    // remover votos a ese candidato
                     for(let sid in db.votes) if(db.votes[sid] === id) delete db.votes[sid];
                     saveData();
                     renderCandidatesAdmin();
@@ -597,8 +548,10 @@
             btn.addEventListener("click", () => {
                 const id = btn.getAttribute("data-id");
                 const candidate = db.candidates.find(c => c.id === id);
-                const newName = prompt("Nuevo nombre del candidato:", candidate.name);
+                const newName = prompt("Nuevo nombre:", candidate.name);
                 if(newName && newName.trim()) candidate.name = newName.trim();
+                const newCorriente = prompt("Corriente / lista:", candidate.corriente);
+                if(newCorriente !== null) candidate.corriente = newCorriente.trim() || "Sin corriente";
                 const newPhotoInput = document.createElement("input");
                 newPhotoInput.type = "file";
                 newPhotoInput.accept = "image/*";
@@ -608,7 +561,7 @@
                         const reader = new FileReader();
                         reader.onload = ev => { candidate.photoDataURL = ev.target.result; saveData(); renderCandidatesAdmin(); refreshVoterArea(); };
                         reader.readAsDataURL(file);
-                    }
+                    } else { saveData(); renderCandidatesAdmin(); refreshVoterArea(); }
                 };
                 newPhotoInput.click();
                 saveData();
@@ -618,12 +571,20 @@
         });
     }
 
+    // ---------- ESTUDIANTES: CARGA EXCEL (CSV) ----------
     function renderStudentsAdmin() {
-        let html = `<div class="form-grid"><div class="form-group"><label>ID Estudiante</label><input id="studentId" placeholder="Ej: EST2024"></div>
-                    <div class="form-group"><label>Nombre completo</label><input id="studentName" placeholder="Nombre"></div>
-                    <div class="form-group"><label>Grado/Curso</label><input id="studentGrade" placeholder="10°"></div>
-                    <div><button id="addStudentBtn" class="admin-btn">➕ Agregar Estudiante</button></div></div>
-                    <div class="student-list">`;
+        let html = `<div class="form-grid">
+                        <div class="form-group"><label>ID Estudiante</label><input id="studentId" placeholder="Ej: EST2024"></div>
+                        <div class="form-group"><label>Nombre completo</label><input id="studentName" placeholder="Nombre"></div>
+                        <div class="form-group"><label>Grado/Curso</label><input id="studentGrade" placeholder="10°"></div>
+                        <div><button id="addStudentBtn" class="admin-btn">➕ Agregar manual</button></div>
+                    </div>
+                    <div class="form-grid" style="background:#eef2ff;">
+                        <div class="form-group"><label>📂 Importar desde Excel/CSV</label><input type="file" id="excelUpload" accept=".csv, .xlsx, .xls, .txt, .csv"></div>
+                        <div><button id="importExcelBtn" class="admin-btn">📥 Importar estudiantes</button></div>
+                        <div><small>El archivo debe tener columnas: <strong>id, nombre, grado</strong> (pueden ir separados por comas o punto y coma)</small></div>
+                    </div>
+                    <div class="student-list" id="studentListAdmin">`;
         db.students.forEach(s => {
             html += `<div class="student-card"><strong>${escapeHtml(s.id)}</strong><br>${escapeHtml(s.name)}<br>${escapeHtml(s.grade)}<br>
                      <button class="admin-btn danger" data-id="${s.id}" data-name="delStudent">Eliminar</button></div>`;
@@ -634,27 +595,84 @@
             const id = document.getElementById("studentId").value.trim();
             const name = document.getElementById("studentName").value.trim();
             const grade = document.getElementById("studentGrade").value.trim();
-            if(!id || !name) return alert("ID y nombre son obligatorios");
-            if(db.students.find(s => s.id === id)) return alert("El ID ya existe");
+            if(!id || !name) return alert("ID y nombre requeridos");
+            if(db.students.find(s => s.id === id)) return alert("ID ya existe");
             db.students.push({ id, name, grade: grade || "No especificado" });
             saveData();
             renderStudentsAdmin();
         });
+        document.getElementById("importExcelBtn")?.addEventListener("click", () => {
+            const fileInput = document.getElementById("excelUpload");
+            if(!fileInput.files.length) return alert("Selecciona un archivo CSV o Excel (se usará CSV)");
+            const file = fileInput.files[0];
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    let importedCount = 0;
+                    results.data.forEach(row => {
+                        // buscamos columnas flexibles: id, nombre, grado (pueden ser id, ID, nombre, Nombre, grado, Grado)
+                        const id = row.id || row.ID || row.identificador || row["Id"];
+                        const name = row.nombre || row.Nombre || row.name || row.Name;
+                        const grade = row.grado || row.Grado || row.curso || row.Curso || "No especificado";
+                        if(id && name && !db.students.find(s => s.id === id)) {
+                            db.students.push({ id: String(id).trim(), name: String(name).trim(), grade: String(grade).trim() });
+                            importedCount++;
+                        }
+                    });
+                    saveData();
+                    renderStudentsAdmin();
+                    alert(`Se importaron ${importedCount} estudiantes nuevos.`);
+                },
+                error: function(err) { alert("Error al leer el archivo: " + err.message); }
+            });
+        });
         document.querySelectorAll("[data-name='delStudent']").forEach(btn => {
             btn.addEventListener("click", () => {
                 const id = btn.getAttribute("data-id");
-                if(confirm(`Eliminar estudiante ${id}? También se borrará su voto si existe.`)) {
+                if(confirm(`Eliminar estudiante ${id}?`)) {
                     db.students = db.students.filter(s => s.id !== id);
                     delete db.votes[id];
                     saveData();
                     renderStudentsAdmin();
-                    if(currentStudent && currentStudent.id === id) { currentStudent = null; selectedCandidateId = null; refreshVoterArea(); }
+                    if(currentStudent && currentStudent.id === id) { currentStudent = null; refreshVoterArea(); }
                 }
             });
         });
     }
 
-    // ---------- VOTACIÓN ESTUDIANTIL ----------
+    // ---------- RESULTADOS CON GRÁFICO ----------
+    function renderResultsWithChart() {
+        const counts = {};
+        db.candidates.forEach(c => counts[c.id] = 0);
+        Object.values(db.votes).forEach(cid => { if(counts[cid] !== undefined) counts[cid]++; });
+        const labels = db.candidates.map(c => `${c.name} (${c.corriente.substring(0,20)})`);
+        const data = db.candidates.map(c => counts[c.id] || 0);
+        const totalVotes = Object.keys(db.votes).length;
+        let html = `<div class="results-summary">
+                        <h4>📈 Resultados actuales - Total votos: ${totalVotes}</h4>
+                        <div class="chart-container">
+                            <canvas id="resultsChartCanvas" width="400" height="400"></canvas>
+                        </div>
+                        <ul style="margin-top:20px;">`;
+        db.candidates.forEach(c => {
+            html += `<li><strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.corriente)}) → ${counts[c.id] || 0} votos (${totalVotes ? ((counts[c.id]||0)/totalVotes*100).toFixed(1) : 0}%)</li>`;
+        });
+        html += `</ul></div>`;
+        document.getElementById("adminDynamicPanel").innerHTML = html;
+
+        const ctx = document.getElementById("resultsChartCanvas")?.getContext("2d");
+        if(ctx) {
+            if(resultsChart) resultsChart.destroy();
+            resultsChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: 'Votos', data: data, backgroundColor: '#3498db', borderRadius: 10 }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Votos por candidato' } } }
+            });
+        }
+    }
+
+    // ---------- VOTACIÓN ESTUDIANTIL (con corriente visible) ----------
     function refreshVoterArea() {
         const ballotDiv = document.getElementById("ballotArea");
         const msgDiv = document.getElementById("voteResultMessage");
@@ -664,7 +682,7 @@
         const studentIdInput = document.getElementById("studentIdInput");
 
         if(!currentStudent) {
-            ballotDiv.innerHTML = `<div class="results-summary">🔐 Inicia sesión con tu ID para ver la papeleta y votar.</div>`;
+            ballotDiv.innerHTML = `<div class="results-summary">🔐 Inicia sesión con tu ID para votar.</div>`;
             if(msgDiv) msgDiv.innerHTML = "";
             loginBtn.style.display = "inline-block";
             logoutBtn.style.display = "none";
@@ -673,22 +691,18 @@
             return;
         }
 
-        // Estudiante logueado
         loginBtn.style.display = "none";
         logoutBtn.style.display = "inline-block";
         studentIdInput.disabled = true;
         const hasVoted = db.votes.hasOwnProperty(currentStudent.id);
         if(hasVoted) {
-            ballotDiv.innerHTML = `<div class="success-message">✅ Ya has emitido tu voto. Gracias por participar.</div>`;
-            authMsg.innerHTML = `<span>👩‍🎓 Estudiante: ${escapeHtml(currentStudent.name)} (${currentStudent.id}) - Ya votaste.</span>`;
+            ballotDiv.innerHTML = `<div class="success-message">✅ Ya has emitido tu voto. Gracias.</div>`;
+            authMsg.innerHTML = `<span>👩‍🎓 ${escapeHtml(currentStudent.name)} (${currentStudent.id}) - Ya votaste.</span>`;
             return;
         }
-        authMsg.innerHTML = `<span>🎓 Bienvenido, ${escapeHtml(currentStudent.name)} (${currentStudent.id}). Selecciona un candidato con la X.</span>`;
-        // Render papeleta con fotos
-        if(db.candidates.length === 0) {
-            ballotDiv.innerHTML = `<div class="results-summary">No hay candidatos registrados. Comunícate con el administrador.</div>`;
-            return;
-        }
+        authMsg.innerHTML = `<span>🎓 Bienvenido, ${escapeHtml(currentStudent.name)}. Selecciona un candidato (aparecerá la X).</span>`;
+        if(db.candidates.length === 0) { ballotDiv.innerHTML = `<div>No hay candidatos.</div>`; return; }
+
         let cardsHtml = `<div class="ballot-container">`;
         db.candidates.forEach(cand => {
             const isSelected = (selectedCandidateId === cand.id);
@@ -699,111 +713,75 @@
                         <div class="x-overlay">✘</div>
                     </div>
                     <div class="candidate-name">${escapeHtml(cand.name)}</div>
+                    <div class="candidate-corriente">${escapeHtml(cand.corriente)}</div>
                 </div>
             `;
         });
         cardsHtml += `</div><button id="confirmVoteBtn" class="vote-btn">🗳️ CONFIRMAR VOTO (X marcada)</button>`;
         ballotDiv.innerHTML = cardsHtml;
 
-        // Eventos selección de foto X
         document.querySelectorAll(".candidate-card-vote").forEach(card => {
-            card.addEventListener("click", (e) => {
-                const cid = card.getAttribute("data-candidate-id");
-                selectedCandidateId = cid;
-                // re-render para resaltar la X
+            card.addEventListener("click", () => {
+                selectedCandidateId = card.getAttribute("data-candidate-id");
                 refreshVoterArea();
             });
         });
-
         document.getElementById("confirmVoteBtn")?.addEventListener("click", () => {
-            if(!selectedCandidateId) { alert("¡Debes seleccionar un candidato haciendo clic en su foto para marcar la X!"); return; }
-            if(db.votes[currentStudent.id]) { alert("Ya votaste anteriormente."); return; }
-            // Registrar voto
+            if(!selectedCandidateId) { alert("Selecciona un candidato haciendo clic en su foto."); return; }
+            if(db.votes[currentStudent.id]) { alert("Ya votaste."); return; }
             db.votes[currentStudent.id] = selectedCandidateId;
             saveData();
             selectedCandidateId = null;
             refreshVoterArea();
-            document.getElementById("voteResultMessage").innerHTML = `<div class="success-message">✔️ ¡Voto registrado con éxito! Aparece tu X y se ha guardado tu elección.</div>`;
-            setTimeout(() => document.getElementById("voteResultMessage").innerHTML = "", 4000);
+            document.getElementById("voteResultMessage").innerHTML = `<div class="success-message">✔️ ¡Voto registrado! X confirmada.</div>`;
+            setTimeout(() => document.getElementById("voteResultMessage").innerHTML = "", 3000);
         });
     }
 
-    // logout estudiante
     function logoutStudent() {
         currentStudent = null;
         selectedCandidateId = null;
-        const inputId = document.getElementById("studentIdInput");
-        if(inputId) inputId.value = "";
+        document.getElementById("studentIdInput").value = "";
         refreshVoterArea();
         document.getElementById("loginStudentBtn").style.display = "inline-block";
         document.getElementById("logoutStudentBtn").style.display = "none";
-        if(document.getElementById("studentIdInput")) document.getElementById("studentIdInput").disabled = false;
+        document.getElementById("studentIdInput").disabled = false;
     }
-
     function loginStudent() {
         const studentId = document.getElementById("studentIdInput").value.trim();
-        if(!studentId) { alert("Ingrese ID de estudiante"); return; }
         const studentFound = db.students.find(s => s.id === studentId);
-        if(!studentFound) {
-            document.getElementById("studentAuthMessage").innerHTML = `<span style="color:red;">❌ Estudiante no registrado en la base de datos.</span>`;
-            return;
-        }
+        if(!studentFound) { document.getElementById("studentAuthMessage").innerHTML = `<span style="color:red;">❌ ID no registrado.</span>`; return; }
         currentStudent = { ...studentFound };
         selectedCandidateId = null;
         refreshVoterArea();
         document.getElementById("studentAuthMessage").innerHTML = "";
     }
 
-    // Admin secciones eventos
+    // Modo y eventos
+    let currentMode = "voter";
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById("voterSection").style.display = mode === "voter" ? "block" : "none";
+        document.getElementById("adminSection").style.display = mode === "admin" ? "block" : "none";
+        document.getElementById("voterModeBtn").classList.toggle("active", mode === "voter");
+        document.getElementById("adminModeBtn").classList.toggle("active", mode === "admin");
+        if(mode === "voter") refreshVoterArea();
+        else { checkAdminAuth(); bindAdminEvents(); }
+    }
     function bindAdminEvents() {
         document.getElementById("showSchoolConfigBtn")?.addEventListener("click", () => showAdminSection("school"));
         document.getElementById("showCandidatesConfigBtn")?.addEventListener("click", () => showAdminSection("candidates"));
         document.getElementById("showStudentsConfigBtn")?.addEventListener("click", () => showAdminSection("students"));
         document.getElementById("viewResultsBtn")?.addEventListener("click", () => showAdminSection("results"));
-        document.getElementById("resetVotesBtn")?.addEventListener("click", () => {
-            if(confirm("⚠️ Reiniciar todas las votaciones, se borrarán todos los votos emitidos.")) {
-                db.votes = {};
-                saveData();
-                if(currentStudent) refreshVoterArea();
-                showAdminSection("results");
-                alert("Votos reiniciados.");
-            }
-        });
-        document.getElementById("logoutAdminBtn")?.addEventListener("click", () => {
-            adminAuthenticated = false;
-            checkAdminAuth();
-        });
+        document.getElementById("resetVotesBtn")?.addEventListener("click", () => { if(confirm("Reiniciar todas las votaciones?")) { db.votes = {}; saveData(); if(currentStudent) refreshVoterArea(); showAdminSection("results"); alert("Votos reiniciados."); } });
+        document.getElementById("logoutAdminBtn")?.addEventListener("click", () => { adminAuthenticated = false; checkAdminAuth(); });
     }
 
-    // Mostrar/ocultar paneles según modo
-    let currentMode = "voter";
-    function setMode(mode) {
-        currentMode = mode;
-        const voterSection = document.getElementById("voterSection");
-        const adminSection = document.getElementById("adminSection");
-        if(mode === "voter") {
-            voterSection.style.display = "block";
-            adminSection.style.display = "none";
-            document.getElementById("voterModeBtn").classList.add("active");
-            document.getElementById("adminModeBtn").classList.remove("active");
-            refreshVoterArea();
-        } else {
-            voterSection.style.display = "none";
-            adminSection.style.display = "block";
-            document.getElementById("adminModeBtn").classList.add("active");
-            document.getElementById("voterModeBtn").classList.remove("active");
-            checkAdminAuth();
-            bindAdminEvents();
-        }
-    }
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
-    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;});}
-
-    // Inicializar
     window.onload = () => {
         loadData();
         updateSchoolHeader();
-        // eventos de interfaz
         document.getElementById("loginStudentBtn").addEventListener("click", loginStudent);
         document.getElementById("logoutStudentBtn").addEventListener("click", logoutStudent);
         document.getElementById("voterModeBtn").addEventListener("click", () => setMode("voter"));
